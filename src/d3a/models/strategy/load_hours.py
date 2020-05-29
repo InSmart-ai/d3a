@@ -133,9 +133,9 @@ class LoadHoursStrategy(BidEnabledStrategy):
                 self.energy_requirement_Wh[market.time_slot] = 0.0
                 self.state.desired_energy_Wh[market.time_slot] = 0.0
         self.event_market_cycle_prices()
-        if self.area.current_market:
+        if self.area.next_market:
             self.state.total_energy_demanded_wh += \
-                self.state.desired_energy_Wh[self.area.current_market.time_slot]
+                self.state.desired_energy_Wh[self.area.next_market.time_slot]
         else:
             self.state.total_energy_demanded_wh = 0.0
         self._delete_past_state()
