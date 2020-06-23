@@ -116,6 +116,7 @@ class AutoDeviceStrategy(DeviceClient):
             slots.append(market_time.subtract(minutes=time).format(DATE_TIME_FORMAT))
         for market in self.markets:
             stats = market.list_market_stats(slots)
+            print (stats)
 
         # load trading strategy setup
         for l in self.loads:
