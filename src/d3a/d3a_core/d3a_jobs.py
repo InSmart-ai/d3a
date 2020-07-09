@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import logging
 from os import environ, getpid
 import ast
+import json
 
 from datetime import datetime
 from pendulum import now, duration, instance
@@ -39,7 +40,7 @@ def decompress_and_decode_queued_strings(queued_string):
 
 
 @job('d3a')
-def start(scenario, settings, events):
+def start(scenario, settings, events, aggregator_device_mapping):
     logging.getLogger().setLevel(logging.ERROR)
 
     scenario = decompress_and_decode_queued_strings(scenario)
@@ -56,6 +57,7 @@ def start(scenario, settings, events):
         advanced_settings = settings.get('advanced_settings', None)
         if advanced_settings is not None:
             update_advanced_settings(ast.literal_eval(advanced_settings))
+        aggregator_device_mapping = json.loads(aggregator_device_mapping)
 
         if events is not None:
             events = ast.literal_eval(events)
@@ -81,7 +83,9 @@ def start(scenario, settings, events):
             "pv_user_profile": settings.get('pv_user_profile', None),
             "max_panel_power_W": settings.get('max_panel_power_W',
                                               ConstSettings.PVSettings.MAX_PANEL_OUTPUT_W),
-            "grid_fee_type": settings.get('grid_fee_type', GlobalConfig.grid_fee_type)
+            "grid_fee_type": settings.get('grid_fee_type', GlobalConfig.grid_fee_type),
+            "external_connection_enabled": settings.get('external_connection_enabled', False),
+            "aggregator_device_mapping": aggregator_device_mapping
         }
 
         validate_global_settings(config_settings)

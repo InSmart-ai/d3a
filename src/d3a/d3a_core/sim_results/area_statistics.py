@@ -19,8 +19,11 @@ from collections import namedtuple, OrderedDict
 from statistics import mean
 from copy import deepcopy
 from d3a.models.strategy.storage import StorageStrategy
+from d3a.models.strategy.finite_power_plant import FinitePowerPlant
+from d3a.models.strategy.infinite_bus import InfiniteBusStrategy
 from d3a.models.strategy.area_agents.one_sided_agent import InterAreaAgent
 from d3a.models.strategy.pv import PVStrategy
+from d3a.models.strategy.market_maker_strategy import MarketMakerStrategy
 from d3a.models.strategy.commercial_producer import CommercialStrategy
 from d3a.models.strategy.load_hours import CellTowerLoadHoursStrategy, LoadHoursStrategy
 from d3a.d3a_core.util import area_name_from_area_or_iaa_name, make_iaa_name, \
@@ -70,17 +73,22 @@ def _is_load_node(area):
 
 
 def _is_producer_node(area):
-    return isinstance(area.strategy, (PVStrategy, CommercialStrategy))
+    return isinstance(area.strategy, PVStrategy) or \
+           type(area.strategy) in [CommercialStrategy, FinitePowerPlant, MarketMakerStrategy]
 
 
 def _is_prosumer_node(area):
     return isinstance(area.strategy, StorageStrategy)
 
 
+def _is_buffer_node(area):
+    return type(area.strategy) == InfiniteBusStrategy
+
+
 def _accumulate_storage_trade(storage, area, accumulated_trades, past_market_types):
     if storage.name not in accumulated_trades:
         accumulated_trades[storage.name] = {
-            "type": "Storage",
+            "type": "Storage" if type(area.strategy) == StorageStrategy else "InfiniteBus",
             "produced": 0.0,
             "earned": 0.0,
             "consumedFrom": {},
@@ -280,7 +288,7 @@ def _accumulate_grid_trades_all_devices(area, accumulated_trades, past_market_ty
                 child, area, accumulated_trades,
                 past_market_types=past_market_types
             )
-        elif _is_prosumer_node(child):
+        elif _is_prosumer_node(child) or _is_buffer_node(child):
             accumulated_trades = \
                 _accumulate_storage_trade(child, area, accumulated_trades, past_market_types)
 
@@ -368,19 +376,6 @@ def _generate_intraarea_consumption_entries(accumulated_trades):
             })
         consumption_rows.append(sorted(consumption_row, key=lambda x: x["areaName"]))
     return consumption_rows
-
-
-def generate_inter_area_trade_details(area, past_market_types):
-    accumulated_trades = _accumulate_grid_trades_all_devices(area, {}, past_market_types)
-    trade_details = dict()
-    for area_name, area_data in accumulated_trades.items():
-        total_energy = 0
-        for name, energy in area_data["consumedFrom"].items():
-            total_energy += energy
-        for name, energy in area_data["consumedFrom"].items():
-            area_data["consumedFrom"][name] = str((energy / total_energy) * 100) + "%"
-        trade_details[area_name] = area_data
-    return trade_details
 
 
 def _external_trade_entries(child, accumulated_trades):

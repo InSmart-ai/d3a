@@ -98,17 +98,21 @@ _setup_modules = available_simulation_scenarios
 @click.option('--enable-bc', is_flag=True, default=False, help="Run simulation on Blockchain")
 @click.option('--compare-alt-pricing', is_flag=True, default=False,
               help="Compare alternative pricing schemes")
+@click.option('--enable-external-connection', is_flag=True, default=False,
+              help="External Agents interaction to simulation during runtime")
 @click.option('--start-date', type=DateType(DATE_FORMAT),
               default=today(tz=TIME_ZONE).format(DATE_FORMAT), show_default=True,
               help=f"Start date of the Simulation ({DATE_FORMAT})")
 def run(setup_module_name, settings_file, slowdown, duration, slot_length, tick_length,
-        market_count, cloud_coverage, compare_alt_pricing, start_date, pause_at, **kwargs):
+        market_count, cloud_coverage, compare_alt_pricing, enable_external_connection, start_date,
+        pause_at, **kwargs):
 
     try:
         if settings_file is not None:
             simulation_settings, advanced_settings = read_settings_from_file(settings_file)
             update_advanced_settings(advanced_settings)
             validate_global_settings(simulation_settings)
+            simulation_settings["external_connection_enabled"] = False
             simulation_config = SimulationConfig(**simulation_settings)
         else:
             global_settings = {"sim_duration": duration,
@@ -119,7 +123,8 @@ def run(setup_module_name, settings_file, slowdown, duration, slot_length, tick_
             validate_global_settings(global_settings)
             simulation_config = \
                 SimulationConfig(duration, slot_length, tick_length, market_count,
-                                 cloud_coverage, start_date=start_date)
+                                 cloud_coverage, start_date=start_date,
+                                 external_connection_enabled=enable_external_connection)
 
         if compare_alt_pricing is True:
             ConstSettings.IAASettings.AlternativePricing.COMPARE_PRICING_SCHEMES = True
